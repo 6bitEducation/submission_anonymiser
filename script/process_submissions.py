@@ -217,7 +217,7 @@ def deanonymise_submissions(student_data, parent_directory):
                 graded_directory, student
             )
             deanon_file_name = os.path.join(deanon_directory, student["File Name"])
-            convert_document(graded_file_name, deanon_file_name)
+            shutil.copy(graded_file_name, deanon_file_name)
     else:
         print("Deanonymised directory found.")
 
