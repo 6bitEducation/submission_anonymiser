@@ -1,3 +1,20 @@
+# Copyright 2021 6 Bit Education Ltd
+# Permission is hereby granted, free of charge, to any person obtaining a copy 
+# of this software and associated documentation files (the "Software"), to deal 
+# in the Software without restriction, including without limitation the rights 
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
+# copies of the Software, and to permit persons to whom the Software is 
+# furnished to do so, subject to the following conditions:
+# The above copyright notice and this permission notice shall be included in 
+# all copies or substantial portions of the Software.
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+# SOFTWARE.
+
 import pandas as pd
 import glob
 import os
@@ -12,19 +29,19 @@ def main():
     parent_directory = dirname(dirname(abspath(__file__)))
     student_data = {}
     paths_to_submissions = glob.glob(
-        parent_directory + "\\submissions-raw\*"
+        parent_directory + os.path.sep + "submissions-raw" + os.path.sep + "*"
         )
     submission_file_names = []
     for path in paths_to_submissions:
         submission_file_names.append(
-            path[path.rfind("\\") + 1:]
+            path[path.rfind(os.path.sep) + 1:]
         )
     # Hash the first file name in directory to safeguard overwriting the lookup
     file_hash = hashlib.sha256(
         submission_file_names[0].encode()
         ).hexdigest()
     file_lookup_name = (
-        parent_directory + "\\file_lookup_" + file_hash + ".xlsx"
+        parent_directory + os.path.sep + "file_lookup_" + file_hash + ".xlsx"
     )
     headers = ["File Name", "First Name", "Last Name", "LTI ID", "Email"]
     if os.path.exists(file_lookup_name):
@@ -114,7 +131,7 @@ def generate_email(first_name, last_name):
 def generate_spreadsheets(
     student_data, parent_directory, file_lookup_name, headers
     ):
-    graide_data_name = parent_directory + "\\upload_this_to_add_people.xlsx"
+    graide_data_name = parent_directory + os.path.sep + "upload_this_to_add_people.xlsx"
     file_names = [file_lookup_name, graide_data_name]
     sheet_names = ["Anonymised Data", "Graide Formatted"]
     graide_headers = headers[1:]
@@ -123,7 +140,7 @@ def generate_spreadsheets(
         index = file_names.index(file_name)
         process_spreadsheets(
             file_name, sheet_names[index], student_data, headerss[index]
-            )
+        )
 
 def process_spreadsheets(file_name, name_of_sheet, student_data, headers):
     data = []
@@ -138,13 +155,13 @@ def process_spreadsheets(file_name, name_of_sheet, student_data, headers):
     with pd.ExcelWriter(file_name) as writer:
         data_frame.to_excel(
             writer, 
-            startcol = -1, 
+            startcol = 0, 
             sheet_name = name_of_sheet
         )
 
 def anonymise_submissions(student_data, parent_directory):
-    submission_directory = parent_directory + "\\submissions-raw\\"
-    anon_directory = parent_directory + "\\submissions-anon\\"
+    submission_directory = parent_directory + os.path.sep + "submissions-raw" + os.path.sep
+    anon_directory = parent_directory + os.path.sep + "submissions-anon" + os.path.sep
     if not os.path.exists(anon_directory):
         os.makedirs(anon_directory)
         for student in student_data.values():
@@ -168,7 +185,7 @@ def generate_anon_file_name(anon_directory, student):
 def convert_document(original_file_name, new_file_name):
     pages = convert_from_path(original_file_name, 100)
     page_number = 1
-    pages_directory = new_file_name[:-4] + "-pages\\"
+    pages_directory = new_file_name[:-4] + "-pages" + os.path.sep
     pdf = FPDF()
     if not os.path.exists(pages_directory):
         os.makedirs(pages_directory)
@@ -176,15 +193,15 @@ def convert_document(original_file_name, new_file_name):
         page_file = pages_directory + "page" + str(page_number) + ".png"
         page.save(page_file, "PNG")
         pdf.add_page()
-        pdf.image(page_file, 0, 0, 209, 294) # Tuned to stretch to A4
+        pdf.image(page_file, 0, 0, 209) # Tuned to stretch to A4
         page_number += 1
         os.remove(page_file)
     pdf.output(new_file_name)
     shutil.rmtree(pages_directory)
 
 def deanonymise_submissions(student_data, parent_directory):
-    graded_directory = parent_directory + "\\submissions-graded\\"
-    deanon_directory = parent_directory + "\\submissions-graded-deanon\\"
+    graded_directory = parent_directory + os.path.sep + "submissions-graded" + os.path.sep
+    deanon_directory = parent_directory + os.path.sep + "submissions-graded-deanon" + os.path.sep
     if not os.path.exists(graded_directory):
         print("No graded documents found.")
     elif not os.path.exists(deanon_directory):
@@ -193,8 +210,8 @@ def deanonymise_submissions(student_data, parent_directory):
             print("Deanonymising student with id: " + str(student["LTI ID"]))
             graded_file_name = generate_anon_file_name(
                 graded_directory, student
-                )
-            deanon_file_name = deanon_directory + "\\" + student["File Name"]
+            )
+            deanon_file_name = deanon_directory + os.path.sep + student["File Name"]
             convert_document(graded_file_name, deanon_file_name)
     else:
         print("Deanonymised directory found.")
