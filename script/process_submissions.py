@@ -187,6 +187,9 @@ def generate_anon_file_name(anon_directory, student):
     )
     return anon_file_name
 
+A4_HEIGHT = 297
+A4_WIDTH = 210
+A4_RATIO = A4_HEIGHT / A4_WIDTH
 def convert_document(original_file_name, new_file_name):
     pages = convert_from_path(original_file_name, 100)
     page_number = 1
@@ -198,7 +201,12 @@ def convert_document(original_file_name, new_file_name):
         page_file = os.path.join(pages_directory, "page" + str(page_number) + ".png")
         page.save(page_file, "PNG")
         pdf.add_page()
-        pdf.image(page_file, 0, 0, 210) # Tuned to stretch to A4
+
+        if page.height / page.width > A4_RATIO:
+            pdf.image(page_file, x=0, y=0, h=A4_HEIGHT) # Tuned to stretch to A4
+        else:
+            pdf.image(page_file, x=0, y=0, w=A4_WIDTH) # Tuned to stretch to A4
+
         page_number += 1
         os.remove(page_file)
     pdf.output(new_file_name)
