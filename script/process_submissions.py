@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 # MIT License
 #
 # Copyright 2021 6 Bit Education Ltd
@@ -21,7 +20,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
 import pandas as pd
 import glob
 import os
@@ -29,6 +27,7 @@ import shutil
 import random
 import hashlib
 import openpyxl
+import threading
 from os.path import dirname, abspath
 from pdf2image import convert_from_path
 from fpdf import FPDF
@@ -62,7 +61,6 @@ def main():
         )
     anonymise_submissions(student_data, parent_directory)
     deanonymise_submissions(student_data, parent_directory)
-
 def import_student_data(file_lookup_name, headers):
     imported_data = pd.read_excel(
         file_lookup_name,
@@ -84,14 +82,11 @@ def import_student_data(file_lookup_name, headers):
                     new_row[header_indices[header]]
                 )
     return student_data
-
 def get_new_row(imported_data, row):
     number_of_columns = int(imported_data.size / len(imported_data))
     return [imported_data[j][row] for j in range(0, number_of_columns)]
-
 def get_header_indices(header_row):
     return {header : header_row.index(header) for header in header_row}
-
 def generate_student_data(submission_file_names):
     while True:
         student_number = 1
@@ -120,12 +115,10 @@ def generate_student_data(submission_file_names):
         else:
             print("Data match found. Regenerating student data.")
     return student_data
-
 def generate_random_name():
     name = "".join([chr(random.randint(97, 97 + 25)) for i in range(0, 6)])
     name = chr(random.randint(65, 65 + 25)) + name
     return name
-
 def generate_email(first_name, last_name):
     email = (
         first_name[0].lower()
@@ -135,7 +128,6 @@ def generate_email(first_name, last_name):
         + "@6bit.co.uk"
     )
     return email
-
 def generate_spreadsheets(student_data, parent_directory, file_lookup_name, headers):
     graide_data_name = os.path.join(parent_directory, "upload_this_to_add_people.xlsx")
     file_names = [file_lookup_name, graide_data_name]
@@ -147,7 +139,6 @@ def generate_spreadsheets(student_data, parent_directory, file_lookup_name, head
         process_spreadsheets(
             file_name, sheet_names[index], student_data, headerss[index]
         )
-
 def process_spreadsheets(file_name, name_of_sheet, student_data, headers):
     data = []
     for student in student_data.values():
@@ -168,20 +159,32 @@ def process_spreadsheets(file_name, name_of_sheet, student_data, headers):
     sheet = book.active
     sheet.delete_cols(1)
     book.save(file_name)
-
 def anonymise_submissions(student_data, parent_directory):
     submission_directory = os.path.join(parent_directory, "submissions-raw")
     anon_directory = os.path.join(parent_directory, "submissions-anon")
     if not os.path.exists(anon_directory):
         os.makedirs(anon_directory)
+        threads = []
         for student in student_data.values():
             print("Anonymising student with id: " + str(student["LTI ID"]))
             file_name = os.path.join(submission_directory, student["File Name"])
             anon_file_name = generate_anon_file_name(anon_directory, student)
-            convert_document(file_name, anon_file_name)
+            thread = threading.Thread(
+                target = convert_document, 
+                args = [file_name, anon_file_name]
+                )
+            thread.start()
+            threads.append([thread, str(student["LTI ID"])])
+        counter = 1
+        for thread in threads:
+            thread[0].join()
+            print(
+                "Created PDF for student with id: " + thread[1] + " ("
+                + str(counter) + "/" + str(len(student_data)) + ")"
+                )
+            counter += 1
     else:
         print("Anonymised directory found.")
-
 def generate_anon_file_name(anon_directory, student):
     first_name = student["First Name"].lower()
     last_name = student["Last Name"].lower()
@@ -191,7 +194,6 @@ def generate_anon_file_name(anon_directory, student):
         last_name + first_name + "_" + lti_id + "_assignment.pdf"
     )
     return anon_file_name
-
 A4_HEIGHT = 297
 A4_WIDTH = 210
 A4_RATIO = A4_HEIGHT / A4_WIDTH
@@ -206,17 +208,15 @@ def convert_document(original_file_name, new_file_name):
         page_file = os.path.join(pages_directory, "page" + str(page_number) + ".png")
         page.save(page_file, "PNG")
         pdf.add_page()
-
+        pdf.image(page_file, 0, 0, 210) # Tuned to stretch to A4
         if page.height / page.width > A4_RATIO:
             pdf.image(page_file, x=0, y=0, h=A4_HEIGHT) # Tuned to stretch to A4
         else:
             pdf.image(page_file, x=0, y=0, w=A4_WIDTH) # Tuned to stretch to A4
-
         page_number += 1
         os.remove(page_file)
     pdf.output(new_file_name)
     shutil.rmtree(pages_directory)
-
 def deanonymise_submissions(student_data, parent_directory):
     graded_directory = os.path.join(parent_directory, "submissions-graded")
     deanon_directory = os.path.join(parent_directory, "submissions-graded-deanon")
@@ -233,5 +233,4 @@ def deanonymise_submissions(student_data, parent_directory):
             shutil.copy(graded_file_name, deanon_file_name)
     else:
         print("Deanonymised directory found.")
-
 main()
