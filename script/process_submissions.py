@@ -20,6 +20,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
 import pandas as pd
 import glob
 import os
@@ -128,8 +129,12 @@ def generate_email(first_name, last_name):
         + "@6bit.co.uk"
     )
     return email
-def generate_spreadsheets(student_data, parent_directory, file_lookup_name, headers):
-    graide_data_name = os.path.join(parent_directory, "upload_this_to_add_people.xlsx")
+def generate_spreadsheets(
+    student_data, parent_directory, file_lookup_name, headers
+    ):
+    graide_data_name = os.path.join(
+        parent_directory, "upload_this_to_add_people.xlsx"
+        )
     file_names = [file_lookup_name, graide_data_name]
     sheet_names = ["Anonymised Data", "Graide Formatted"]
     graide_headers = headers[1:]
@@ -167,7 +172,9 @@ def anonymise_submissions(student_data, parent_directory):
         threads = []
         for student in student_data.values():
             print("Anonymising student with id: " + str(student["LTI ID"]))
-            file_name = os.path.join(submission_directory, student["File Name"])
+            file_name = os.path.join(
+                submission_directory, student["File Name"]
+                )
             anon_file_name = generate_anon_file_name(anon_directory, student)
             thread = threading.Thread(
                 target = convert_document, 
@@ -205,21 +212,24 @@ def convert_document(original_file_name, new_file_name):
     if not os.path.exists(pages_directory):
         os.makedirs(pages_directory)
     for page in pages:
-        page_file = os.path.join(pages_directory, "page" + str(page_number) + ".png")
+        page_file = os.path.join(
+            pages_directory, "page" + str(page_number) + ".png"
+            )
         page.save(page_file, "PNG")
         pdf.add_page()
-        pdf.image(page_file, 0, 0, 210) # Tuned to stretch to A4
         if page.height / page.width > A4_RATIO:
-            pdf.image(page_file, x=0, y=0, h=A4_HEIGHT) # Tuned to stretch to A4
+            pdf.image(page_file, x=0, y=0, h=A4_HEIGHT)
         else:
-            pdf.image(page_file, x=0, y=0, w=A4_WIDTH) # Tuned to stretch to A4
+            pdf.image(page_file, x=0, y=0, w=A4_WIDTH)
         page_number += 1
         os.remove(page_file)
     pdf.output(new_file_name)
     shutil.rmtree(pages_directory)
 def deanonymise_submissions(student_data, parent_directory):
     graded_directory = os.path.join(parent_directory, "submissions-graded")
-    deanon_directory = os.path.join(parent_directory, "submissions-graded-deanon")
+    deanon_directory = os.path.join(
+        parent_directory, "submissions-graded-deanon"
+        )
     if not os.path.exists(graded_directory):
         print("No graded documents found.")
     elif not os.path.exists(deanon_directory):
@@ -229,7 +239,9 @@ def deanonymise_submissions(student_data, parent_directory):
             graded_file_name = generate_anon_file_name(
                 graded_directory, student
             )
-            deanon_file_name = os.path.join(deanon_directory, student["File Name"])
+            deanon_file_name = os.path.join(
+                deanon_directory, student["File Name"]
+                )
             shutil.copy(graded_file_name, deanon_file_name)
     else:
         print("Deanonymised directory found.")
