@@ -28,6 +28,7 @@ import os
 import shutil
 import random
 import hashlib
+import openpyxl
 from os.path import dirname, abspath
 from pdf2image import convert_from_path
 from fpdf import FPDF
@@ -163,6 +164,10 @@ def process_spreadsheets(file_name, name_of_sheet, student_data, headers):
             startcol = 0,
             sheet_name = name_of_sheet
         )
+    book = openpyxl.load_workbook(file_name)
+    sheet = book.active
+    sheet.delete_cols(1)
+    book.save(file_name)
 
 def anonymise_submissions(student_data, parent_directory):
     submission_directory = os.path.join(parent_directory, "submissions-raw")
